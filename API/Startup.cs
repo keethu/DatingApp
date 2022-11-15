@@ -13,13 +13,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using API.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Server.IISIntegration;
 
 namespace API
 {
     public class Startup
     {
         private readonly IConfiguration _Config;
-
+        private readonly string _policyName = "CorsPolicy";
         public Startup(IConfiguration config)
         {
             _Config = config;
@@ -34,6 +35,16 @@ namespace API
                 options.UseSqlite(_Config.GetConnectionString("DefaultConnection"));
             });
             services.AddControllers();
+            services.AddCors(opt =>
+            {
+                opt.AddPolicy(name: _policyName, builder =>
+                {
+                    builder.AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+                });
+            });
+            services.AddAuthentication(IISDefaults.AuthenticationScheme);
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "WebAPIv5", Version = "v1" });
@@ -52,6 +63,8 @@ namespace API
 
             app.UseHttpsRedirection();
 
+            //app.UseCors(x=>x.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:4200"));
+            app.UseCors(_policyName);
             app.UseRouting();
 
             app.UseAuthorization();
